@@ -5,13 +5,23 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - name: Setup Ngrok
+      - name: Download Ngrok
         run: |
-          Invoke-WebRequest -Uri "https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip" -OutFile "ngrok.zip"
-          Expand-Archive ngrok.zip
-          .\ngrok\ngrok.exe authtoken YOUR_NGROK_AUTH_TOKEN
-          .\ngrok\ngrok.exe tcp 3389
+          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Angelos24/RDP_Windows/main/ngrok.zip" -OutFile "ngrok.zip"
+          Expand-Archive -Path "ngrok.zip" -DestinationPath "ngrok"
+          cd ngrok
+          .\ngrok.exe authtoken YOUR_NGROK_AUTH_TOKEN
+
+      - name: Start Ngrok Tunnel
+        run: |
+          .\ngrok\ngrok.exe tcp 3389 --region us &
+
       - name: Enable RDP
         run: |
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          net user Administrator /active:yes
+          net user Administrator YOUR_PASSWORD
+
+      - name: Keep the job running
+        run: timeout /t 21600
